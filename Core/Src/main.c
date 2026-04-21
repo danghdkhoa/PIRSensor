@@ -20,7 +20,9 @@
 #include "main.h"
 #include "stm32f103xb.h"
 #include "stm32f1xx_hal.h"
+#include "stm32f1xx_hal_def.h"
 #include "stm32f1xx_hal_gpio.h"
+#include "stm32f1xx_hal_uart.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -52,6 +54,10 @@ UART_HandleTypeDef huart2;
 // int signal[4];
 // char msg1[] = "Phat hien chuyen dong\r\n";
 // char msg2[] = "                      \r\n";
+uint8_t lock_mask = 0;
+uint8_t rx_buff[16];
+uint8_t rx_byte;
+uint8_t rx_idx = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,7 +65,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+uint8_t read_74HC165(void);
+void process_command_from_hc05(char* cmd); 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -82,6 +89,22 @@ uint8_t read_74HC165() {
 
   }
   return value;
+}
+
+void process_command_from_hc05(char* cmd) {
+  if (strncmp(cmd, "LOCK", 4) == 0 && cmd[5] == '\0') {
+    uint8_t led = cmd[4] - '1';
+    if (led < 4) {
+      lock_mask |= (1 << led);
+      HAL_UART_Transmit(&huart2, (uint8_t*)"LOCKED\r\n", 8, 100);
+    }
+  } else if (strncmp(cmd, "UNLOCK", 6) == 0 && cmd[7] == '\0') {
+    uint8_t led = cmd[6] - '1';
+    if (led < 4) {
+      lock_mask &= ~(1 << led);
+      HAL_UART_Transmit(&huart2, (uint8_t*)"UNLOCKED\r\n", 10, 100);
+    }
+  }
 }
 /* USER CODE END 0 */
 
@@ -135,30 +158,53 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+    HAL_UART_Transmit(&huart2, (uint8_t*)"System Ready!\r\n", 15, 100);
+    // receive_bluetooth
+    if (HAL_UART_Receive(&huart2, &rx_byte, 1, 10) == HAL_OK) {
+      if (rx_byte == '\n' || rx_byte == '\r') {
+        if (rx_idx > 0) {
+          rx_buff[rx_idx] = '\0';
+          process_command_from_hc05((char*)rx_buff);
+          rx_idx = 0;
+        }
+      } else {
+        if (rx_idx < sizeof(rx_buff) - 1) {
+          rx_buff[rx_idx++] = rx_byte;
+        }
+      }
+    }
+    
     uint8_t sensors = read_74HC165() & 0x0F;
-
-    if (sensors & 0x01) {
+    
+    /*
+    PIR and LOCK
+    LOCKED => LED auto ON
+    priority-based locking.
+    */ 
+    uint8_t output = sensors | lock_mask; 
+    
+    if (output & 0x01) {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
     } else {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
     }
-    if (sensors & 0x02) {
+    if (output & 0x02) {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
     } else {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
     }
-    if (sensors & 0x04) {
+    if (output & 0x04) {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
     } else {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
     }
-    if (sensors & 0x08) {
+    if (output & 0x08) {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
     } else {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
       
     }
+    /* USER CODE END WHILE */
     
     /* USER CODE BEGIN 3 */
   }
