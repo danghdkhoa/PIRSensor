@@ -26,6 +26,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdint.h>
 #include <string.h>
 /* USER CODE END Includes */
 
@@ -55,9 +56,13 @@ UART_HandleTypeDef huart2;
 // char msg1[] = "Phat hien chuyen dong\r\n";
 // char msg2[] = "                      \r\n";
 uint8_t lock_mask = 0;
-uint8_t rx_buff[16];
+uint8_t rx_buffer[16] = "";
 uint8_t rx_byte;
 uint8_t rx_idx = 0;
+uint8_t transfer_cplt;
+
+
+uint8_t tx_buffer[10] = "Welcome\n\r";
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -92,6 +97,11 @@ uint8_t read_74HC165() {
 }
 
 void process_command_from_hc05(char* cmd) {
+  int len = strlen(cmd);
+  while (len > 0 && ((cmd[len - 1]) == '\r' || (cmd[len - 1]) == '\n' || (cmd[len - 1] == ' '))) {
+    cmd[--len] = '\0';
+  }
+
   if (strncmp(cmd, "LOCK", 4) == 0 && cmd[5] == '\0') {
     uint8_t led = cmd[4] - '1';
     if (led < 4) {
@@ -139,6 +149,8 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
+
   // GPIO_Config my_pins_input[] = {
   //   {GPIOA, GPIO_PIN_4},
   //   {GPIOA, GPIO_PIN_5},
@@ -152,24 +164,25 @@ int main(void)
   //   {GPIOB, GPIO_PIN_2},
   //   {GPIOB, GPIO_PIN_10},
   // };
+  HAL_UART_Receive_IT(&huart2, &rx_byte, 1);
   /* USER CODE END 2 */
       
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    HAL_UART_Transmit(&huart2, (uint8_t*)"System Ready!\r\n", 15, 100);
-    // receive_bluetooth
-    if (HAL_UART_Receive(&huart2, &rx_byte, 1, 10) == HAL_OK) {
+
+    // HAL_Delay(1000);
+    if (HAL_UART_Receive(&huart2, &rx_byte, 1, 100) == HAL_OK) {
       if (rx_byte == '\n' || rx_byte == '\r') {
         if (rx_idx > 0) {
-          rx_buff[rx_idx] = '\0';
-          process_command_from_hc05((char*)rx_buff);
+          rx_buffer[rx_idx] = '\0';
+          process_command_from_hc05((char*)rx_buffer);
           rx_idx = 0;
         }
       } else {
-        if (rx_idx < sizeof(rx_buff) - 1) {
-          rx_buff[rx_idx++] = rx_byte;
+        if (rx_idx < sizeof(rx_buffer) - 1) {
+          rx_buffer[rx_idx++] = rx_byte;
         }
       }
     }
@@ -183,6 +196,7 @@ int main(void)
     */ 
     uint8_t output = sensors | lock_mask; 
     
+
     if (output & 0x01) {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
     } else {
@@ -201,8 +215,7 @@ int main(void)
     if (output & 0x08) {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
     } else {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
-      
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);  
     }
     /* USER CODE END WHILE */
     
@@ -263,7 +276,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 9600; // change to 9600 bc baudrate of hc05 is 9600
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
