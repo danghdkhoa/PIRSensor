@@ -20,7 +20,6 @@
 #include "main.h"
 #include "stm32f103xb.h"
 #include "stm32f1xx_hal.h"
-#include "stm32f1xx_hal_def.h"
 #include "stm32f1xx_hal_gpio.h"
 #include "stm32f1xx_hal_uart.h"
 
@@ -60,7 +59,7 @@ uint8_t rx_buffer[16] = "";
 uint8_t rx_byte;
 uint8_t rx_idx = 0;
 uint8_t transfer_cplt;
-
+uint8_t text[] = "dangkhoadayne";
 
 uint8_t tx_buffer[10] = "Welcome\n\r";
 /* USER CODE END PV */
@@ -70,38 +69,38 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-uint8_t read_74HC165(void);
+// uint8_t read_74HC165(void);
 void process_command_from_hc05(char* cmd); 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t read_74HC165() {
-  uint8_t value = 0;
+// uint8_t read_74HC165() {
+//   uint8_t value = 0;
 
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET); // set SH/LD low
-  HAL_Delay(1);
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET); // set SH/LD high and start receive data
-  for (int i = 7; i >= 0; i--) {
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET) {
-      value |= (1 << i);
-    }
+//   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET); // set SH/LD low
+//   HAL_Delay(1);
+//   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET); // set SH/LD high and start receive data
+//   for (int i = 7; i >= 0; i--) {
+//     if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET) {
+//       value |= (1 << i);
+//     }
 
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
-    HAL_Delay(1);
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
-    HAL_Delay(1);
+//     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
+//     HAL_Delay(1);
+//     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
+//     HAL_Delay(1);
 
-  }
-  return value;
-}
+//   }
+//   return value;
+// }
 
 void process_command_from_hc05(char* cmd) {
   int len = strlen(cmd);
   while (len > 0 && ((cmd[len - 1]) == '\r' || (cmd[len - 1]) == '\n' || (cmd[len - 1] == ' '))) {
     cmd[--len] = '\0';
   }
-
+  lock_mask = 0;
   if (strncmp(cmd, "LOCK", 4) == 0 && cmd[5] == '\0') {
     uint8_t led = cmd[4] - '1';
     if (led < 4) {
@@ -150,28 +149,27 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  GPIO_Config my_pins_input[] = {
+    {GPIOA, GPIO_PIN_4},
+    {GPIOA, GPIO_PIN_5},
+    {GPIOA, GPIO_PIN_6},
+    {GPIOA, GPIO_PIN_7},
+  };
 
-  // GPIO_Config my_pins_input[] = {
-  //   {GPIOA, GPIO_PIN_4},
-  //   {GPIOA, GPIO_PIN_5},
-  //   {GPIOA, GPIO_PIN_6},
-  //   {GPIOA, GPIO_PIN_7},
-  // };
-
-  // GPIO_Config my_pins_output[] = {
-  //   {GPIOB, GPIO_PIN_0},
-  //   {GPIOB, GPIO_PIN_1},
-  //   {GPIOB, GPIO_PIN_2},
-  //   {GPIOB, GPIO_PIN_10},
-  // };
+  GPIO_Config my_pins_output[] = {
+    {GPIOB, GPIO_PIN_0},
+    {GPIOB, GPIO_PIN_1},
+    {GPIOB, GPIO_PIN_10},
+    {GPIOB, GPIO_PIN_11},
+  };
   HAL_UART_Receive_IT(&huart2, &rx_byte, 1);
   /* USER CODE END 2 */
-      
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+    HAL_UART_Transmit(&huart2, text, sizeof(text), 1000);
     // HAL_Delay(1000);
     if (HAL_UART_Receive(&huart2, &rx_byte, 1, 100) == HAL_OK) {
       if (rx_byte == '\n' || rx_byte == '\r') {
@@ -187,38 +185,58 @@ int main(void)
       }
     }
     
-    uint8_t sensors = read_74HC165() & 0x0F;
+    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
+    // HAL_Delay(50);
+    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1);
+    // HAL_Delay(50);
+    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_10);
+    // HAL_Delay(50);
+    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_11);
+    // HAL_Delay(50);
+
+    // uint8_t sensors = read_74HC165() & 0x0F;
     
     /*
     PIR and LOCK
     LOCKED => LED auto ON
     priority-based locking.
     */ 
-    uint8_t output = sensors | lock_mask; 
+    // uint8_t output = sensors | lock_mask; 
     
 
-    if (output & 0x01) {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
-    } else {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+    // if (output & 0x01) {
+    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+    // } else {
+    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+    // }
+    // if (output & 0x02) {
+    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+    // } else {
+    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+    // }
+    // if (output & 0x04) {
+    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+    // } else {
+    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+    // }
+    // if (output & 0x08) {
+    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+    // } else {
+    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);  
+    // }
+
+    for (int i = 0; i < 4; i++) {
+      if (HAL_GPIO_ReadPin(my_pins_input[i].port, my_pins_input[i].pin) == GPIO_PIN_SET) {
+        HAL_GPIO_WritePin(my_pins_output[i].port, my_pins_output[i].pin, GPIO_PIN_SET);
+      } else {
+        HAL_GPIO_WritePin(my_pins_output[i].port, my_pins_output[i].pin, GPIO_PIN_RESET);
+      }
     }
-    if (output & 0x02) {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
-    } else {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
-    }
-    if (output & 0x04) {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-    } else {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
-    }
-    if (output & 0x08) {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
-    } else {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);  
-    }
+
+
+
     /* USER CODE END WHILE */
-    
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -276,7 +294,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600; // change to 9600 bc baudrate of hc05 is 9600
+  huart2.Init.BaudRate = 9600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -311,20 +329,33 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_11, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
+                          |GPIO_PIN_11, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10|GPIO_PIN_11, GPIO_PIN_RESET);
+
   /*Configure GPIO pins : PA4 PA5 PA6 PA7 */
   GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB10 PB11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_11;
+  /*Configure GPIO pins : PB0 PB1 PB2 PB10
+                           PB11 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_9|GPIO_PIN_10
+                          |GPIO_PIN_11;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW; 
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PA10 PA11 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   /*Configure GPIO pins : PA10 PA11 */
