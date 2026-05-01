@@ -95,26 +95,26 @@ void process_command_from_hc05(char* cmd);
 //   return value;
 // }
 
-void process_command_from_hc05(char* cmd) {
-  int len = strlen(cmd);
-  while (len > 0 && ((cmd[len - 1]) == '\r' || (cmd[len - 1]) == '\n' || (cmd[len - 1] == ' '))) {
-    cmd[--len] = '\0';
-  }
-  lock_mask = 0;
-  if (strncmp(cmd, "LOCK", 4) == 0 && cmd[5] == '\0') {
-    uint8_t led = cmd[4] - '1';
-    if (led < 4) {
-      lock_mask |= (1 << led);
-      HAL_UART_Transmit(&huart2, (uint8_t*)"LOCKED\r\n", 8, 100);
-    }
-  } else if (strncmp(cmd, "UNLOCK", 6) == 0 && cmd[7] == '\0') {
-    uint8_t led = cmd[6] - '1';
-    if (led < 4) {
-      lock_mask &= ~(1 << led);
-      HAL_UART_Transmit(&huart2, (uint8_t*)"UNLOCKED\r\n", 10, 100);
-    }
-  }
-}
+// void process_command_from_hc05(char* cmd) {
+//   int len = strlen(cmd);
+//   while (len > 0 && ((cmd[len - 1]) == '\r' || (cmd[len - 1]) == '\n' || (cmd[len - 1] == ' '))) {
+//     cmd[--len] = '\0';
+//   }
+//   lock_mask = 0;
+//   if (strncmp(cmd, "LOCK", 4) == 0 && cmd[5] == '\0') {
+//     uint8_t led = cmd[4] - '1';
+//     if (led < 4) {
+//       lock_mask |= (1 << led);
+//       HAL_UART_Transmit(&huart2, (uint8_t*)"LOCKED\r\n", 8, 100);
+//     }
+//   } else if (strncmp(cmd, "UNLOCK", 6) == 0 && cmd[7] == '\0') {
+//     uint8_t led = cmd[6] - '1';
+//     if (led < 4) {
+//       lock_mask &= ~(1 << led);
+//       HAL_UART_Transmit(&huart2, (uint8_t*)"UNLOCKED\r\n", 10, 100);
+//     }
+//   }
+// }
 /* USER CODE END 0 */
 
 /**
