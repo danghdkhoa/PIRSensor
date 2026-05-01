@@ -169,21 +169,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    HAL_UART_Transmit(&huart2, text, sizeof(text), 1000);
-    // HAL_Delay(1000);
-    if (HAL_UART_Receive(&huart2, &rx_byte, 1, 100) == HAL_OK) {
-      if (rx_byte == '\n' || rx_byte == '\r') {
-        if (rx_idx > 0) {
-          rx_buffer[rx_idx] = '\0';
-          process_command_from_hc05((char*)rx_buffer);
-          rx_idx = 0;
-        }
-      } else {
-        if (rx_idx < sizeof(rx_buffer) - 1) {
-          rx_buffer[rx_idx++] = rx_byte;
-        }
-      }
-    }
+    // HAL_UART_Transmit(&huart2, text, sizeof(text), 1000);
+    // // HAL_Delay(1000);
+    // if (HAL_UART_Receive(&huart2, &rx_byte, 1, 100) == HAL_OK) {
+    //   if (rx_byte == '\n' || rx_byte == '\r') {
+    //     if (rx_idx > 0) {
+    //       rx_buffer[rx_idx] = '\0';
+    //       process_command_from_hc05((char*)rx_buffer);
+    //       rx_idx = 0;
+    //     }
+    //   } else {
+    //     if (rx_idx < sizeof(rx_buffer) - 1) {
+    //       rx_buffer[rx_idx++] = rx_byte;
+    //     }
+    //   }
+    // }
     
     // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
     // HAL_Delay(50);
