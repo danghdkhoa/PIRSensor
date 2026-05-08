@@ -9,6 +9,7 @@
 #include "esp_camera.h"
 #include "img_converters.h"
 #include <Arduino.h>
+#include <iterator>
 // ============================================================
 // PINOUT Camera OV2640 — ESP32-S3 N16R8 FPC connector
 // ============================================================
@@ -28,11 +29,13 @@
 #define VSYNC_GPIO_NUM  6
 #define HREF_GPIO_NUM   7
 #define PCLK_GPIO_NUM   13
-
 // ============================================================
 // LED báo hiệu
 // ============================================================
 #define LED_PIN 2
+// cau hinh chan rx, tx. co the thay doi neu doi chan
+#define STM32_RX_PIN 43
+#define STM32_TX_PIN 44
 
 // Buffer ảnh RGB
 static uint8_t *rgb_buf = nullptr;
@@ -106,21 +109,21 @@ bool init_camera() {
 // ============================================================
 // Chụp ảnh + chạy FOMO inference
 // ============================================================
-void run_detection() {
+bool run_detection() {
     // Chụp frame
     camera_fb_t *fb = esp_camera_fb_get();
     if (!fb) {
-        Serial.println("⚠️ Không lấy được frame!");
-        return;
+        Serial.println("no frame");
+        return false;
     }
 
     // Cấp phát buffer RGB trong PSRAM
     size_t buf_size = EI_CLASSIFIER_INPUT_WIDTH * EI_CLASSIFIER_INPUT_HEIGHT * 3;
     rgb_buf = (uint8_t *) ps_malloc(buf_size);
     if (!rgb_buf) {
-        Serial.println("⚠️ Hết PSRAM!");
+        Serial.println("running out of PSRAM!");
         esp_camera_fb_return(fb);
-        return;
+        return false;
     }
 
     // Convert JPEG → RGB888
@@ -128,9 +131,9 @@ void run_detection() {
     esp_camera_fb_return(fb);
 
     if (!ok) {
-        Serial.println("⚠️ Convert ảnh thất bại!");
+        Serial.println("Convert failed.");
         free(rgb_buf); rgb_buf = nullptr;
-        return;
+        return false;
     }
 
     // Tạo signal cho Edge Impulse
@@ -142,12 +145,12 @@ void run_detection() {
     ei_impulse_result_t result = {0};
     EI_IMPULSE_ERROR err = run_classifier(&signal, &result, false);
 
-    free(rgb_buf); rgb_buf = nullptr;
 
-    if (err != EI_IMPULSE_OK) {
-        Serial.printf("⚠️ Lỗi inference: %d\n", err);
-        return;
-    }
+    // if (err != EI_IMPULSE_OK) {
+    //     Serial.printf("⚠️ Lỗi inference: %d\n", err);
+    //     return;
+    // }
+
 
     // ============================================================
     // Đọc kết quả bounding boxes FOMO
@@ -167,13 +170,14 @@ void run_detection() {
         }
     }
 
-    if (detected) {
-        Serial.printf("✅ Phát hiện %d người! (%d ms)\n", count, result.timing.classification);
-        digitalWrite(LED_PIN, HIGH);
-    } else {
-        Serial.printf("🔍 Không có người (%d ms)\n", result.timing.classification);
-        digitalWrite(LED_PIN, LOW);
-    }
+    // if (detected) {
+    //     Serial.printf("Phat hien: %d nguoi (%d ms)\n", count, result.timing.classification);
+    //     digitalWrite(LED_PIN, HIGH);
+    // } else {
+    //     Serial.printf("Khong co nguoi (%d ms)\n", result.timing.classification);
+    //     digitalWrite(LED_PIN, LOW);
+    // }
+    return detected;
 }
 
 // ============================================================
@@ -182,40 +186,56 @@ void run_detection() {
 void setup() {
     Serial.begin(115200);
     delay(1000);
+    
+    Serial1.begin(115200, SERIAL_8N1, STM32_RX_PIN, STM32_TX_PIN);
 
-    Serial.println("====================================");
-    Serial.println("  CE103 FOMO Human Detection");
-    Serial.println("  ESP32-S3 N16R8 + OV2640");
-    Serial.println("====================================");
+    
+
+    // Serial.println("====================================");
+    // Serial.println("  CE103 FOMO Human Detection");
+    // Serial.println("  ESP32-S3 N16R8 + OV2640");
+    // Serial.println("====================================");
 
     pinMode(LED_PIN, OUTPUT);
 
-    // Nháy LED 3 lần báo boot
-    for (int i = 0; i < 3; i++) {
-        digitalWrite(LED_PIN, HIGH); delay(150);
-        digitalWrite(LED_PIN, LOW);  delay(150);
-    }
+    // // Nháy LED 3 lần báo boot
+    // for (int i = 0; i < 3; i++) {
+    //     digitalWrite(LED_PIN, HIGH); delay(150);
+    //     digitalWrite(LED_PIN, LOW);  delay(150);
+    // }
 
     if (!init_camera()) {
-        // Nháy nhanh báo lỗi camera
-        Serial.println("HALT: camera error");
+        // Serial.println("HALT: camera error");
         while (true) {
-            digitalWrite(LED_PIN, HIGH); delay(80);
-            digitalWrite(LED_PIN, LOW);  delay(80);
+            digitalWrite(LED_PIN, !digitalRead(LED_PIN)); delay(100);
         }
     }
 
     Serial.printf("Model input: %dx%d\n", EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT);
     Serial.printf("Label: hum | Threshold: %.0f%%\n", EI_CLASSIFIER_OBJECT_DETECTION_THRESHOLD * 100);
-    Serial.println("Bắt đầu detection...\n");
+    // Serial.println("Bắt đầu detection...\n");
 }
 
 // ============================================================
 // LOOP
 // ============================================================
 void loop() {
-    if ()
+    if (Serial1.available() > 0) {
+        char cmd =  Serial1.read();
 
-    run_detection();
-    delay(100); // ~10 FPS
+        if (cmd == 'S') {
+            Serial.println("start");
+
+            bool found = run_detection();
+
+            if (found) {
+                Serial.println('A');
+                digitalWrite(LED_PIN, HIGH);
+            } else {
+                Serial.println('N');
+                digitalWrite(LED_PIN, LOW);
+            }
+        }
+        delay(100);
+    }
 }

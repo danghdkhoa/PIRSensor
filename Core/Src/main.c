@@ -109,9 +109,10 @@ int main(void)
     pir_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4);
 
     if (pir_state == GPIO_PIN_SET) {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
-    } else {
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+      uint8_t cmd = 'S'; // start
+      HAL_UART_Transmit(&huart2, &cmd, 1, 10);
+
+      HAL_Delay(500);
     }
 
 
@@ -251,7 +252,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+  if (huart->Instance == USART2) { 
+    if (esp_response == 'A') { // alarm
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
+      HAL_Delay(2000); // 2000 ms
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+    } else if (esp_response == 'N') { // none
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+    }
+    HAL_UART_Receive_IT(&huart2, &esp_response, 1);
+  }
+}
 /* USER CODE END 4 */
 
 /**
