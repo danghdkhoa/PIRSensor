@@ -1,1 +1,1 @@
-PIR Sensor with STM32.
+Security Camera using PIR sensor, STM32, ESP32-CAM

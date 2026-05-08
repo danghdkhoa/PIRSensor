@@ -31,10 +31,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct {
-  GPIO_TypeDef* port;
-  uint16_t pin;
-} GPIO_Config;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -51,17 +48,7 @@ typedef struct {
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-// int signal[4];
-// char msg1[] = "Phat hien chuyen dong\r\n";
-// char msg2[] = "                      \r\n";
-uint8_t lock_mask = 0;
-uint8_t rx_buffer[16] = "";
-uint8_t rx_byte;
-uint8_t rx_idx = 0;
-uint8_t transfer_cplt;
-uint8_t text[] = "dangkhoadayne";
 
-uint8_t tx_buffer[10] = "Welcome\n\r";
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -69,52 +56,15 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-// uint8_t read_74HC165(void);
-void process_command_from_hc05(char* cmd); 
+
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-// uint8_t read_74HC165() {
-//   uint8_t value = 0;
+uint8_t esp_response;
+uint8_t pir_state = 0;
 
-//   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_RESET); // set SH/LD low
-//   HAL_Delay(1);
-//   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET); // set SH/LD high and start receive data
-//   for (int i = 7; i >= 0; i--) {
-//     if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4) == GPIO_PIN_SET) {
-//       value |= (1 << i);
-//     }
-
-//     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
-//     HAL_Delay(1);
-//     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
-//     HAL_Delay(1);
-
-//   }
-//   return value;
-// }
-
-// void process_command_from_hc05(char* cmd) {
-//   int len = strlen(cmd);
-//   while (len > 0 && ((cmd[len - 1]) == '\r' || (cmd[len - 1]) == '\n' || (cmd[len - 1] == ' '))) {
-//     cmd[--len] = '\0';
-//   }
-//   lock_mask = 0;
-//   if (strncmp(cmd, "LOCK", 4) == 0 && cmd[5] == '\0') {
-//     uint8_t led = cmd[4] - '1';
-//     if (led < 4) {
-//       lock_mask |= (1 << led);
-//       HAL_UART_Transmit(&huart2, (uint8_t*)"LOCKED\r\n", 8, 100);
-//     }
-//   } else if (strncmp(cmd, "UNLOCK", 6) == 0 && cmd[7] == '\0') {
-//     uint8_t led = cmd[6] - '1';
-//     if (led < 4) {
-//       lock_mask &= ~(1 << led);
-//       HAL_UART_Transmit(&huart2, (uint8_t*)"UNLOCKED\r\n", 10, 100);
-//     }
-//   }
-// }
 /* USER CODE END 0 */
 
 /**
@@ -149,88 +99,19 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  GPIO_Config my_pins_input[] = {
-    {GPIOA, GPIO_PIN_4},
-    {GPIOA, GPIO_PIN_5},
-    {GPIOA, GPIO_PIN_6},
-    {GPIOA, GPIO_PIN_7},
-  };
 
-  GPIO_Config my_pins_output[] = {
-    {GPIOB, GPIO_PIN_0},
-    {GPIOB, GPIO_PIN_1},
-    {GPIOB, GPIO_PIN_10},
-    {GPIOB, GPIO_PIN_11},
-  };
-  HAL_UART_Receive_IT(&huart2, &rx_byte, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    // HAL_UART_Transmit(&huart2, text, sizeof(text), 1000);
-    // // HAL_Delay(1000);
-    // if (HAL_UART_Receive(&huart2, &rx_byte, 1, 100) == HAL_OK) {
-    //   if (rx_byte == '\n' || rx_byte == '\r') {
-    //     if (rx_idx > 0) {
-    //       rx_buffer[rx_idx] = '\0';
-    //       process_command_from_hc05((char*)rx_buffer);
-    //       rx_idx = 0;
-    //     }
-    //   } else {
-    //     if (rx_idx < sizeof(rx_buffer) - 1) {
-    //       rx_buffer[rx_idx++] = rx_byte;
-    //     }
-    //   }
-    // }
-    
-    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_0);
-    // HAL_Delay(50);
-    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1);
-    // HAL_Delay(50);
-    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_10);
-    // HAL_Delay(50);
-    // HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_11);
-    // HAL_Delay(50);
+    pir_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_4);
 
-    // uint8_t sensors = read_74HC165() & 0x0F;
-    
-    /*
-    PIR and LOCK
-    LOCKED => LED auto ON
-    priority-based locking.
-    */ 
-    // uint8_t output = sensors | lock_mask; 
-    
-
-    // if (output & 0x01) {
-    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
-    // } else {
-    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
-    // }
-    // if (output & 0x02) {
-    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
-    // } else {
-    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
-    // }
-    // if (output & 0x04) {
-    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
-    // } else {
-    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
-    // }
-    // if (output & 0x08) {
-    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
-    // } else {
-    //   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);  
-    // }
-
-    for (int i = 0; i < 4; i++) {
-      if (HAL_GPIO_ReadPin(my_pins_input[i].port, my_pins_input[i].pin) == GPIO_PIN_SET) {
-        HAL_GPIO_WritePin(my_pins_output[i].port, my_pins_output[i].pin, GPIO_PIN_SET);
-      } else {
-        HAL_GPIO_WritePin(my_pins_output[i].port, my_pins_output[i].pin, GPIO_PIN_RESET);
-      }
+    if (pir_state == GPIO_PIN_SET) {
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET);
+    } else {
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
     }
 
 
@@ -294,7 +175,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -365,8 +246,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET); // CLK = LOW
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_11, GPIO_PIN_SET);   // SH/LD = HIGH
+
   /* USER CODE END MX_GPIO_Init_2 */
 }
 
