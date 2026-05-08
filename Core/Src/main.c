@@ -64,7 +64,9 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN 0 */
 uint8_t esp_response;
 uint8_t pir_state = 0;
-
+uint8_t last_pir_state = 0;
+uint8_t alarm_flag = 0;
+uint8_t alarm_timer = 0;
 /* USER CODE END 0 */
 
 /**
@@ -98,7 +100,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_UART_Receive_IT(&huart2, &esp_response, 1);
 
   /* USER CODE END 2 */
 
@@ -111,12 +113,17 @@ int main(void)
     if (pir_state == GPIO_PIN_SET) {
       uint8_t cmd = 'S'; // start
       HAL_UART_Transmit(&huart2, &cmd, 1, 10);
-
-      HAL_Delay(500);
+    }
+    last_pir_state = pir_state;
+    if (alarm_flag == 1) {
+      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_SET); // Bật còi chân PB0
+      if (HAL_GetTick() - alarm_timer > 2000) { // Hú trong 2 giây
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+        alarm_flag = 0;
+      }
     }
 
-
-
+    HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -255,10 +262,10 @@ static void MX_GPIO_Init(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
   if (huart->Instance == USART2) { 
     if (esp_response == 'A') { // alarm
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
-      HAL_Delay(2000); // 2000 ms
-      HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+      alarm_flag = 1;
+      alarm_timer = HAL_GetTick();
     } else if (esp_response == 'N') { // none
+      alarm_flag = 0;
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
     }
     HAL_UART_Receive_IT(&huart2, &esp_response, 1);
