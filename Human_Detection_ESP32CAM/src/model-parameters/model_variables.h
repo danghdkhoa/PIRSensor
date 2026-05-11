@@ -142,7 +142,7 @@ const ei_impulse_t impulse_975637_1 = {
     .project_name = "CE103-Project",
     .impulse_id = 1,
     .impulse_name = "Image data, Image, Object Detection (Images)",
-    .deploy_version = 6,
+    .deploy_version = 8,
 
     .nn_input_frame_size = 9216,
     .raw_sample_count = 9216,
