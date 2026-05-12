@@ -16,8 +16,8 @@
 // ===========================
 // Enter your WiFi credentials
 // ===========================
-const char *ssid = "Bao Minh";
-const char *password = "77777777";
+const char *ssid = "********";
+const char *password = "********";
 
 // ===========================
 // FOMO inference settings
